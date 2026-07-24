@@ -1,0 +1,49 @@
+#include <vector>
+
+class Solution {
+public:
+    int uniqueXorTriplets(std::vector<int>& nums) {
+        // Use fixed-size arrays bounded by the next power of two (> 1500)
+        // Since max num is 1500, the maximum possible XOR value fits in 11 bits (0 to 2047)
+        bool seen[2048] = {false};
+        std::vector<int> unique_nums;
+        unique_nums.reserve(nums.size());
+        
+        // Step 1: Filter out duplicate numbers as they don't generate new unique XOR values
+        for (int x : nums) {
+            if (!seen[x]) {
+                seen[x] = true;
+                unique_nums.push_back(x);
+            }
+        }
+        
+        // Step 2: Calculate all possible XOR values of pairs (nums[i] ^ nums[j])
+        bool pair_xor[2048] = {false};
+        int n = unique_nums.size();
+        
+        for (int i = 0; i < n; ++i) {
+            for (int j = i; j < n; ++j) {
+                pair_xor[unique_nums[i] ^ unique_nums[j]] = true;
+            }
+        }
+        
+        // Step 3: Calculate all possible XOR values of triplets (pair_xor ^ nums[k])
+        bool triplet_xor[2048] = {false};
+        int count = 0;
+        
+        for (int i = 0; i < 2048; ++i) {
+            // Only process valid pair combinations
+            if (pair_xor[i]) {
+                for (int j = 0; j < n; ++j) {
+                    int val = i ^ unique_nums[j];
+                    if (!triplet_xor[val]) {
+                        triplet_xor[val] = true;
+                        count++; // Count unique triplet XOR values instantly
+                    }
+                }
+            }
+        }
+        
+        return count;
+    }
+};
