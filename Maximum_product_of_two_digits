@@ -1,0 +1,26 @@
+class Solution {
+public:
+    int maxProduct(int n) {
+        // Initialize to -1 to explicitly differentiate from a digit of 0
+        int maxDigit = -1;
+        int secondMaxDigit = -1;
+        
+        while (n > 0) {
+            int digit = n % 10;
+            
+            // If we find a strictly new maximum, demote the old max to second place
+            if (digit > maxDigit) {
+                secondMaxDigit = maxDigit;
+                maxDigit = digit;
+            } 
+            // If the digit equals the max, OR is greater than the second max, update the second max
+            else if (digit > secondMaxDigit) {
+                secondMaxDigit = digit;
+            }
+            
+            n /= 10;
+        }
+        
+        return maxDigit * secondMaxDigit;
+    }
+};
