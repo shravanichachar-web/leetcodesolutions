@@ -1,0 +1,121 @@
+#include <vector>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
+class SparseTable {
+    vector<vector<int>> st;
+    vector<int> log_table;
+public:
+
+    SparseTable(const vector<int>& arr) {
+        int n = arr.size();
+        if (n == 0) return;
+
+        log_table.assign(n + 1, 0);
+        for (int i = 2; i <= n; i++) {
+            log_table[i] = log_table[i / 2] + 1;
+        }
+
+        int max_log = log_table[n] + 1;
+        st.assign(max_log, vector<int>(n));
+
+        for (int i = 0; i < n; i++) {
+            st[0][i] = arr[i];
+        }
+
+        for (int j = 1; j < max_log; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                st[j][i] = max(st[j - 1][i], st[j - 1][i + (1 << (j - 1))]); 
+            }
+        }
+    }
+
+    int query(int L, int R) const {
+        if (L > R) return 0;
+        int j = log_table[R - L + 1];
+        return max(st[j][L], st[j][R - (1 << j) + 1]);
+    }
+};
+class Solution {
+public:
+    vector<int> maxActiveSectionsAfterTrade(string s, vector<vector<int>>& queries) {
+        int n = s.length();
+        int total_ones = 0;
+
+        vector<pair<int, int>> Z;
+
+        for (int i = 0; i < n; ) {
+            if (s[i] == '1') {
+                total_ones++;
+                i++;
+            } else {
+                int j = i;
+                while (j < n && s[j] == '0') {
+                    j++;
+                }
+                Z.push_back({i, j - 1});
+                i = j;
+            }
+        }
+
+        vector<int> adj_sum;
+        int z_sz = Z.size();
+        if (z_sz >= 2) {
+            adj_sum.resize(z_sz - 1);
+            for (int i = 0; i < z_sz - 1; i++) {
+                adj_sum[i] = (Z[i].second - Z[i].first + 1) + (Z[i+1].second - Z[i+1].first + 1);
+            }
+        }
+        SparseTable rmq(adj_sum);
+
+        vector<int> ans;
+        ans.reserve(queries.size());
+
+        for (const auto& q : queries) {
+            int l = q[0];
+            int r = q[1];
+
+            auto it1 = lower_bound(Z.begin(), Z.end(), l, [](const pair<int, int>& p, int val) {
+                return p.second < val;
+            });
+
+            auto it2 = upper_bound(Z.begin(), Z.end(), r, [](int val, const pair<int, int>& p) {
+                return val < p.first;
+            });
+
+            int idx1 = distance(Z.begin(), it1);
+            int idx2 = distance(Z.begin(), it2) - 1;
+
+            if (idx1 >= idx2) {
+                ans.push_back(total_ones);
+            } else {
+                auto get_len = [&](int i) {
+                    return min(r, Z[i].second) - max(l, Z[i].first) + 1;
+                };
+
+                int max_gain = 0;
+
+                max_gain = max(max_gain, get_len(idx1) + get_len(idx1 + 1));
+
+                if (idx2 - idx1 >= 2){
+                    max_gain = max(max_gain, get_len(idx2 - 1) + get_len(idx2));
+
+
+                }
+
+                if (idx2 - idx1 >= 3) {
+                    max_gain = max(max_gain, rmq.query(idx1 + 1, idx2 - 2));
+                }
+
+                ans.push_back(total_ones + max_gain);
+            }
+                
+            
+        }
+
+        return ans;
+        
+    }
+};
