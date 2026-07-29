@@ -1,0 +1,27 @@
+#include <string>
+
+using namespace std;
+
+class Solution {
+public:
+    string intToRoman(int num) {
+        // Parallel arrays matching Roman numeral symbols to their integer values, 
+        // strictly ordered from largest to smallest.
+        int values[] = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
+        string symbols[] = {"M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"};
+        
+        string roman = "";
+        
+        // Iterate through the values
+        for (int i = 0; i < 13; i++) {
+            // While the number is greater than or equal to the current largest value,
+            // append the symbol and subtract the value.
+            while (num >= values[i]) {
+                roman += symbols[i];
+                num -= values[i];
+            }
+        }
+        
+        return roman;
+    }
+};
