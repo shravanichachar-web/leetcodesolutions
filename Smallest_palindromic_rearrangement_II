@@ -1,0 +1,100 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
+class Solution {
+    // Safe ceiling higher than the max possible value of k (usually 10^9)
+    const long long LIMIT = 2000000000LL; 
+
+    // Function to calculate nCr (combinations) on the fly
+    long long nCk(int n, int k_val) {
+        if (k_val < 0 || k_val > n) return 0;
+        k_val = min(k_val, n - k_val);
+        long long res = 1;
+        for (int i = 1; i <= k_val; ++i) {
+            res = res * (n - i + 1) / i;
+            if (res >= LIMIT) return LIMIT; // Prevent overflow and save time
+        }
+        return res;
+    }
+
+    // Calculates the number of unique permutations for a given character frequency set
+    long long calc_perms(const vector<int>& counts) {
+        int total = 0;
+        for (int x : counts) total += x;
+        
+        long long res = 1;
+        for (int freq : counts) {
+            if (freq == 0) continue;
+            long long ways = nCk(total, freq);
+            if (ways == 0) continue;
+            
+            // Limit checks before multiplying to prevent integer overflow
+            if (ways >= LIMIT) return LIMIT;
+            if (LIMIT / ways < res) return LIMIT; 
+            
+            res *= ways;
+            if (res >= LIMIT) return LIMIT;
+            
+            total -= freq;
+        }
+        return res;
+    }
+
+public:
+    string smallestPalindrome(string s, int k) {
+        vector<int> counts(26, 0);
+        for (char c : s) {
+            counts[c - 'a']++;
+        }
+        
+        string mid = "";
+        vector<int> half_counts(26, 0);
+        
+        // Split character pools for the palindrome
+        for (int i = 0; i < 26; ++i) {
+            if (counts[i] % 2 != 0) {
+                mid += (char)('a' + i);
+            }
+            half_counts[i] = counts[i] / 2;
+        }
+        
+        // A valid palindrome can have at most one odd-frequency character
+        if (mid.length() > 1) return ""; 
+        
+        // If k is greater than total possible distinct palindromes, return empty
+        long long total_perms = calc_perms(half_counts);
+        if (k > total_perms) return "";
+        
+        int N = s.length() / 2;
+        string left_half = "";
+        
+        // Greedily build the k-th permutation
+        for (int i = 0; i < N; ++i) {
+            for (int c = 0; c < 26; ++c) {
+                if (half_counts[c] > 0) {
+                    // Try placing character 'c'
+                    half_counts[c]--;
+                    long long perms = calc_perms(half_counts);
+                    
+                    if (k <= perms) {
+                        // The k-th permutation resides in this branch; lock it in
+                        left_half += (char)('a' + c);
+                        break; 
+                    } else {
+                        // Skip this branch and reduce k
+                        k -= perms;
+                        half_counts[c]++; // Revert and try the next character
+                    }
+                }
+            }
+        }
+        
+        string right_half = left_half;
+        reverse(right_half.begin(), right_half.end());
+        return left_half + mid + right_half;
+    }
+};
