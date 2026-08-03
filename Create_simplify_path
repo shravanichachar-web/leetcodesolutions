@@ -1,0 +1,36 @@
+#include <string>
+#include <vector>
+#include <sstream>
+using namespace std;
+class Solution {
+public:
+    string simplifyPath(string path) {
+        vector<string> dirs;
+        stringstream ss(path);
+        string token;
+
+        while (getline(ss, token, '/')) {
+            if (token == "" || token == ".") {
+                continue;
+            }
+
+            else if (token == "..") {
+                if (!dirs.empty()) {
+                    dirs.pop_back();
+                }
+            }
+
+            else {
+                dirs.push_back(token);
+            }
+        }
+
+        string result = "";
+        for (const string& dir : dirs) {
+            result += "/" + dir;
+        }
+
+        return result.empty() ? "/" : result;
+        
+    }
+};
