@@ -1,0 +1,28 @@
+#include <vector>
+#include <algorithm>
+#include <unordered_set>
+
+using namespace std;
+
+class Solution {
+public:
+    vector<int> findMissingElements(vector<int>& nums) {
+        // Find the minimum and maximum elements in the array
+        int minNum = *min_element(nums.begin(), nums.end());
+        int maxNum = *max_element(nums.begin(), nums.end());
+        
+        // Insert all elements into an unordered_set for O(1) lookups
+        unordered_set<int> numSet(nums.begin(), nums.end());
+        
+        vector<int> missingNums;
+        
+        // Iterate through the full range from minNum to maxNum
+        for (int i = minNum; i <= maxNum; i++) {
+            if (numSet.find(i) == numSet.end()) {
+                missingNums.push_back(i);
+            }
+        }
+        
+        return missingNums;
+    }
+};
