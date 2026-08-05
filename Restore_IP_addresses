@@ -1,0 +1,46 @@
+#include <vector>
+#include <string>
+
+using namespace std;
+
+class Solution {
+private:
+    void backtrack(const string& s, int startIndex, int segmentCount, string currentIP, vector<string>& result) {
+        // If we have 4 segments and have used all characters, it's a valid IP
+        if (segmentCount == 4 && startIndex == s.length()) {
+            result.push_back(currentIP);
+            return;
+        }
+        
+        // If we have 4 segments but characters remain, or if we ran out of characters before 4 segments
+        if (segmentCount == 4 || startIndex == s.length()) {
+            return;
+        }
+        
+        // Try placing a dot after 1, 2, or 3 characters
+        for (int len = 1; len <= 3 && startIndex + len <= s.length(); ++len) {
+            string segment = s.substr(startIndex, len);
+            
+            // Check if the segment is valid:
+            // 1. Cannot have leading zeros (e.g., "05" is invalid, but "0" is valid)
+            // 2. Value cannot exceed 255
+            if ((segment.length() > 1 && segment[0] == '0') || stoi(segment) > 255) {
+                continue;
+            }
+            
+            // Append segment and recurse
+            string nextIP = currentIP.empty() ? segment : currentIP + "." + segment;
+            backtrack(s, startIndex + len, segmentCount + 1, nextIP, result);
+        }
+    }
+
+public:
+    vector<string> restoreIpAddresses(string s) {
+        vector<string> result;
+        if (s.length() < 4 || s.length() > 12) {
+            return result; // An IPv4 address length must be between 4 and 12 characters
+        }
+        backtrack(s, 0, 0, "", result);
+        return result;
+    }
+};
