@@ -1,0 +1,180 @@
+#include <string>
+#include <vector>
+#include <array>
+#include <algorithm>
+#include <utility>
+
+using namespace std;
+
+class Solution {
+    array<int, 10> kFactorCounts[10];
+
+public:
+    Solution() {
+        for (int i = 0; i < 10; ++i) {
+            kFactorCounts[i] = {0};
+        }
+        // Map factors 2, 3, 5, 7 for digits 2-9
+        kFactorCounts[2][2] = 1;
+        kFactorCounts[3][3] = 1;
+        kFactorCounts[4][2] = 2;
+        kFactorCounts[5][5] = 1;
+        kFactorCounts[6][2] = 1;
+        kFactorCounts[6][3] = 1;
+        kFactorCounts[7][7] = 1;
+        kFactorCounts[8][2] = 3;
+        kFactorCounts[9][3] = 2;
+    }
+
+    // Fetches the prime factorization of t, tracking only {2, 3, 5, 7}
+    pair<array<int, 10>, bool> getPrimeCount(long long t) {
+        array<int, 10> count = {0};
+        for (int prime : {2, 3, 5, 7}) {
+            while (t % prime == 0) {
+                t /= prime;
+                count[prime]++;
+            }
+        }
+        return {count, t == 1}; // If t != 1, it has a prime factor > 7, so it's impossible.
+    }
+
+    // Returns a frequency map of factors {2, 3, 5, 7} up to a current `num` string
+    array<int, 10> getPrimeCountFromString(const string& num) {
+        array<int, 10> count = {0};
+        for (char c : num) {
+            int d = c - '0';
+            if (d == 0) continue;
+            for (int p : {2, 3, 5, 7}) {
+                count[p] += kFactorCounts[d][p];
+            }
+        }
+        return count;
+    }
+
+    // Forms the optimal greedy required multiset of minimal digits
+    array<int, 10> getFactorCount(const array<int, 10>& primeCount) {
+        int count2 = primeCount[2];
+        int count3 = primeCount[3];
+        int count5 = primeCount[5];
+        int count7 = primeCount[7];
+
+        int count8 = count2 / 3;
+        int remaining2 = count2 % 3;
+        int count9 = count3 / 2;
+        int remaining3 = count3 % 2;
+        int count4 = remaining2 / 2;
+        remaining2 %= 2;
+        int count6 = 0;
+        
+        // Advanced combinations to optimize length and lexicographical sorts
+        if (remaining2 == 1 && remaining3 == 1) {
+            remaining2 = 0;
+            remaining3 = 0;
+            count6 = 1;
+        }
+        if (remaining3 == 1 && count4 == 1) {
+            remaining2 = 1;
+            count6 = 1;
+            remaining3 = 0;
+            count4 = 0;
+        }
+
+        array<int, 10> res = {0};
+        res[2] = remaining2;
+        res[3] = remaining3;
+        res[4] = count4;
+        res[5] = count5;
+        res[6] = count6;
+        res[7] = count7;
+        res[8] = count8;
+        res[9] = count9;
+        return res;
+    }
+
+    // Counts how many actual digits this multiset yields
+    int sumValues(const array<int, 10>& m) {
+        int sum = 0;
+        for (int i = 2; i < 10; ++i) sum += m[i];
+        return sum;
+    }
+
+    // Unravels the digit multiset ascending into a suffix string 
+    string construct(const array<int, 10>& factorCount) {
+        string res = "";
+        for (int digit = 2; digit < 10; ++digit) {
+            if (factorCount[digit] > 0) {
+                res += string(factorCount[digit], '0' + digit);
+            }
+        }
+        return res;
+    }
+
+    bool isSubset(const array<int, 10>& req, const array<int, 10>& prefix) {
+        for (int p : {2, 3, 5, 7}) {
+            if (prefix[p] < req[p]) return false;
+        }
+        return true;
+    }
+
+    // Evaluates difference in counts: `max(0, a[i] - b[i])`
+    array<int, 10> subtract(array<int, 10> a, const array<int, 10>& b) {
+        for (int p : {2, 3, 5, 7}) {
+            a[p] = max(0, a[p] - b[p]);
+        }
+        return a;
+    }
+
+    string smallestNumber(string num, long long t) {
+        auto [primeCount, isDivisible] = getPrimeCount(t);
+        if (!isDivisible) return "-1";
+
+        array<int, 10> factorCount = getFactorCount(primeCount);
+        if (sumValues(factorCount) > (int)num.length()) {
+            return construct(factorCount);
+        }
+
+        array<int, 10> primeCountPrefix = getPrimeCountFromString(num);
+        int firstZeroIndex = num.find('0');
+        
+        // If the number already works out-the-box (and has zero `0`s), return it
+        if (firstZeroIndex == string::npos) {
+            firstZeroIndex = num.length();
+            if (isSubset(primeCount, primeCountPrefix)) return num;
+        }
+
+        // Search backward trying to upgrade a single character
+        for (int i = (int)num.length() - 1; i >= 0; --i) {
+            int d = num[i] - '0';
+            primeCountPrefix = subtract(primeCountPrefix, kFactorCounts[d]); // Omit current
+            
+            int spaceAfterThisDigit = (int)num.length() - 1 - i;
+            if (i > firstZeroIndex) continue;
+
+            // Try to escalate it
+            for (int biggerDigit = d + 1; biggerDigit < 10; ++biggerDigit) {
+                array<int, 10> factorsAfterReplacement = getFactorCount(
+                    subtract(
+                        subtract(primeCount, primeCountPrefix), 
+                        kFactorCounts[biggerDigit]
+                    )
+                );
+                
+                // Construct the answer if it fits in remaining constraints
+                if (sumValues(factorsAfterReplacement) <= spaceAfterThisDigit) {
+                    int fillOnes = spaceAfterThisDigit - sumValues(factorsAfterReplacement);
+                    return num.substr(0, i) + 
+                           to_string(biggerDigit) + 
+                           string(fillOnes, '1') + 
+                           construct(factorsAfterReplacement);
+                }
+            }
+        }
+
+        // If no combination fit inside the original length boundaries, extend it length-wise
+        array<int, 10> factorsAfterExtension = getFactorCount(primeCount);
+        int requiredLength = sumValues(factorsAfterExtension);
+        int targetLength = max((int)num.length() + 1, requiredLength);
+        int fillOnes = targetLength - requiredLength;
+        return string(fillOnes, '1') + construct(factorsAfterExtension);
+    }
+};
