@@ -1,0 +1,62 @@
+#include <vector>
+#include <string>
+
+using namespace std;
+
+class Solution {
+public:
+    vector<int> validSequence(string word1, string word2) {
+        int n = word1.length();
+        int m = word2.length();
+        
+        // suf[j] will store the rightmost index in word1 such that 
+        // word2[j...m-1] is a perfect subsequence of word1[suf[j]...n-1].
+        vector<int> suf(m + 1, -1);
+        suf[m] = n; // Base case for finishing the string
+        
+        int j = m - 1;
+        for (int i = n - 1; i >= 0 && j >= 0; --i) {
+            if (word1[i] == word2[j]) {
+                suf[j] = i;
+                j--;
+            }
+        }
+        
+        vector<int> ans;
+        ans.reserve(m);
+        bool used_mismatch = false;
+        int i = 0;
+        
+        // Build the result greedily from left to right
+        for (int k = 0; k < m; ++k) {
+            bool found = false;
+            while (i < n) {
+                if (word1[i] == word2[k]) {
+                    // Exact match is naturally always optimal
+                    ans.push_back(i);
+                    i++;
+                    found = true;
+                    break;
+                } else {
+                    // We can use our 1 mismatch here if the remaining 
+                    // suffix of word2 can be perfectly formed in the remainder of word1
+                    if (!used_mismatch && suf[k + 1] >= i + 1) {
+                        used_mismatch = true;
+                        ans.push_back(i);
+                        i++;
+                        found = true;
+                        break;
+                    }
+                }
+                i++;
+            }
+            
+            // If we couldn't map the character, no valid sequence can be completed
+            if (!found) {
+                return {};
+            }
+        }
+        
+        return ans;
+    }
+};
